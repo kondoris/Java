@@ -1,0 +1,184 @@
+import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+
+import java.util.ArrayList;
+import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+public class GUI extends Application {
+
+    private final VBox boxRoot;
+    private final VBox boxControl;
+    private final HBox boxWorker;
+
+    private final VBox boxXs;
+    private final VBox boxYs;
+    private final VBox boxResult;
+
+    private final Label labelXs;
+    private final Label labelYs;
+    private final Label labelResult;
+
+    private final TextField fieldXs;
+    private final TextField fieldYs;
+
+    private final Button buttonCalculate;
+    private final TextField fieldResult;
+
+    private final Label labelStatus;
+
+
+    public GUI() {
+        this.boxRoot = new VBox();
+        this.boxControl = new VBox();
+        this.boxWorker = new HBox();
+        this.boxXs = new VBox();
+        this.boxYs = new VBox();
+        this.boxResult = new VBox();
+        this.labelXs = new Label("Xs:");
+        this.labelYs = new Label("Ys:");
+        this.labelResult = new Label("Result: ");
+        this.fieldXs = new TextField();
+        this.fieldYs = new TextField();
+        this.fieldResult = new TextField();
+        this.buttonCalculate = new Button("Calculate");
+        this.labelStatus = new Label("Ready");
+
+        this.fieldResult.setEditable(false);
+        this.boxRoot.setAlignment(Pos.CENTER);
+        this.boxWorker.setAlignment(Pos.CENTER);
+
+        initHierarchy();
+        initCallbacks();
+    }
+
+    private void initHierarchy() {
+        boxResult.getChildren().addAll(labelResult, fieldResult);
+        boxXs.getChildren().addAll(labelXs, fieldXs);
+        boxYs.getChildren().addAll(labelYs, fieldYs);
+
+        boxWorker.getChildren().addAll(buttonCalculate, boxResult);
+        boxControl.getChildren().addAll(boxXs, boxYs);
+
+        boxRoot.getChildren().addAll(labelStatus, boxControl, boxWorker);
+    }
+
+
+    private void initCallbacks() {
+        buttonCalculate.setOnMouseClicked(e -> {
+            ArrayList<Double> xs = parseList(fieldXs);
+            ArrayList<Double> ys = parseList(fieldYs);
+            if (xs.isEmpty()) {
+                setStatus("Please, enter valid X sequence");
+                return;
+            }
+            if (ys.isEmpty()) {
+                setStatus("Please enter valid Y sequence");
+                return;
+            }
+            if (xs.size() != ys.size()) {
+                setStatus("Please, enter same number of elements for both X and Y sequences. "
+                        + xs.size() + " != " + ys.size());
+                return;
+            }
+
+            startWorker(xs, ys, xs.size());
+        });
+    }
+
+    @Override
+    public void start(Stage primaryStage) {
+        Scene scene = new Scene(boxRoot);
+        primaryStage.setScene(scene);
+        primaryStage.show();
+    }
+
+    private Optional<Double> parseDouble(String s) {
+        try {
+            return Optional.of(Double.parseDouble(s));
+        } catch (NumberFormatException f) {
+            return Optional.empty();
+        }
+    }
+
+    private ArrayList<Double> parseList(TextField field) {
+        ArrayList<Double> doubles = new ArrayList<>();
+        String value = field.getText();
+        if (value.isEmpty()) return new ArrayList<>();
+
+        String[] items = value.split("\\s*,\\s*");
+        for (String item : items) {
+            Optional<Double> number = parseDouble(item);
+            if (!number.isPresent()) return new ArrayList<>();
+            System.out.println(number.get());
+            doubles.add(number.get());
+        }
+
+        return doubles;
+    }
+
+    private void setStatus(String st) {
+        labelStatus.setText(st);
+    }
+
+    private void setResult(Double result) {
+        fieldResult.setText(String.valueOf(result));
+    }
+
+    private void setControlsState(boolean state) {
+        buttonCalculate.setDisable(!state);
+        fieldXs.setDisable(!state);
+        fieldYs.setDisable(!state);
+    }
+
+    private void wrapUi(Runnable runnable) {
+        Platform.runLater(runnable);
+    }
+
+    private void startWorker(final ArrayList<Double> xs,
+                             final ArrayList<Double> ys,
+                             final int n) {
+        new Thread(() -> {
+            wrapUi(() -> {
+                setStatus("Starting...");
+                setResult(0.0);
+                setControlsState(false);
+            });
+            Lock lock = new ReentrantLock();
+            CountDownLatch latch = new CountDownLatch(n);
+
+            ValueWrapper<Double> result = new ValueWrapper<>(0.0);
+
+            for (int i = 0; i < n; i++) {
+                new WorkerThread(i, n, xs.get(i), ys.get(i), lock, latch, result).start();
+            }
+
+            wrapUi(() -> setStatus("Calculating..."));
+            try {
+                latch.await();
+                wrapUi(() -> {
+                    setStatus("Done");
+                    setResult(result.getValue());
+                    setControlsState(true);
+                });
+            } catch (InterruptedException exc) {
+                wrapUi(() -> {
+                    setStatus("Interrupted!");
+                    setResult(0.0);
+                    setControlsState(true);
+                });
+            }
+
+        }).start();
+    }
+}
