@@ -1,5 +1,7 @@
 package com.bsuir.epam.lab.core.vessels;
 
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import com.bsuir.epam.lab.core.base.Fluid;
 import com.bsuir.epam.lab.core.base.Vessel;
 import com.bsuir.epam.lab.core.utils.Cap;
@@ -45,6 +47,7 @@ public class Bottle extends Vessel {
         if (hasCap())
             throw new IllegalStateException("Unable to drain bottle while it has cap");
         return super.drain();
+		JFrame infowindow1 = new InfoWindow(1);
     }
 
     @Override
@@ -52,5 +55,6 @@ public class Bottle extends Vessel {
         if (hasCap())
             throw new IllegalStateException("Unable to move fluid into bottle while it has cap");
         return super.move(fluid);
+		JFrame infowindow1 = new InfoWindow(0);
     }
 }
