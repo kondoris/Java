@@ -1,5 +1,5 @@
 package com.bsuir.epam.lab.core.vessels;
-
+import javax.swing.JFrame;
 import com.bsuir.epam.lab.core.base.Fluid;
 import com.bsuir.epam.lab.core.base.Vessel;
 import com.bsuir.epam.lab.core.utils.Handle;
