@@ -1,5 +1,6 @@
 package com.bsuir.epam.lab;
 
+import javax.swing.JFrame;
 import com.bsuir.epam.lab.core.Human;
 import com.bsuir.epam.lab.core.base.Fluid;
 import com.bsuir.epam.lab.core.base.Vessel;
@@ -13,6 +14,7 @@ import java.util.ArrayList;
 public class Main {
 
     public static void main(String[] args) {
+		JFrame window = new Window("MainWindow");
     }
 
 }
