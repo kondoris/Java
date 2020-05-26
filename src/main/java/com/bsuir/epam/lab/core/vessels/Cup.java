@@ -45,5 +45,6 @@ public class Cup extends Vessel {
         if (!hasHandle())
             throw new IllegalStateException("Unable to drain cup while it has no handle");
         return super.drain();
+		JFrame infowindow1 = new InfoWindow(1);
     }
 }
